@@ -1,5 +1,17 @@
 # `cacache` Release Changelog
 
+<a name="13.1.0"></a>
+## 13.1.0 (2024-11-26)
+
+### Features
+
+* **link:** add hard_link_hash (#82) ([ab5f1c91](https://github.com/zkat/cacache-rs/commit/ab5f1c91857188f01a93fb60c47b25ee711d545d))
+
+### Bug Fixes
+
+* **docs:** improved documentation for remove_fully (#78) ([3a712473](https://github.com/zkat/cacache-rs/commit/3a712473645d05b256b430102ae809190e5d4f60))
+* **tokio:** add safe access join handles (#85) ([146a593c](https://github.com/zkat/cacache-rs/commit/146a593c8e3abea8bc4c1888ae6781a3f2e1422e))
+
 <a name="13.0.0"></a>
 ## 13.0.0 (2024-02-15)
 
