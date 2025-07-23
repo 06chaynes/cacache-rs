@@ -1,21 +1,21 @@
 use std::fs::DirBuilder;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
-#[cfg(any(feature = "async-std", feature = "tokio"))]
+#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
 use std::pin::Pin;
-#[cfg(any(feature = "async-std", feature = "tokio"))]
+#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
 use std::sync::Mutex;
-#[cfg(any(feature = "async-std", feature = "tokio"))]
+#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
 use std::task::{Context, Poll};
 
-#[cfg(any(feature = "async-std", feature = "tokio"))]
+#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
 use futures::prelude::*;
 #[cfg(feature = "mmap")]
 use memmap2::MmapMut;
 use ssri::{Algorithm, Integrity, IntegrityOpts};
 use tempfile::NamedTempFile;
 
-#[cfg(any(feature = "async-std", feature = "tokio"))]
+#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
 use crate::async_lib::{AsyncWrite, JoinHandle};
 use crate::content::path;
 use crate::errors::{IoErrorExt, Result};
@@ -129,16 +129,16 @@ impl Write for Writer {
     }
 }
 
-#[cfg(any(feature = "async-std", feature = "tokio"))]
+#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
 pub struct AsyncWriter(Mutex<State>);
 
-#[cfg(any(feature = "async-std", feature = "tokio"))]
+#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
 enum State {
     Idle(Option<Inner>),
     Busy(JoinHandle<State>),
 }
 
-#[cfg(any(feature = "async-std", feature = "tokio"))]
+#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
 struct Inner {
     cache: PathBuf,
     builder: IntegrityOpts,
@@ -148,13 +148,13 @@ struct Inner {
     last_op: Option<Operation>,
 }
 
-#[cfg(any(feature = "async-std", feature = "tokio"))]
+#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
 enum Operation {
     Write(std::io::Result<usize>),
     Flush(std::io::Result<()>),
 }
 
-#[cfg(any(feature = "async-std", feature = "tokio"))]
+#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
 impl AsyncWriter {
     #[allow(clippy::new_ret_no_self)]
     #[allow(clippy::needless_lifetimes)]
@@ -275,7 +275,7 @@ impl AsyncWriter {
     }
 }
 
-#[cfg(any(feature = "async-std", feature = "tokio"))]
+#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
 impl AsyncWrite for AsyncWriter {
     fn poll_write(
         self: Pin<&mut Self>,
@@ -407,6 +407,11 @@ impl AsyncWrite for AsyncWriter {
     fn poll_shutdown(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
         self.poll_close_impl(cx)
     }
+
+    #[cfg(feature = "smol")]
+    fn poll_close(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<std::io::Result<()>> {
+        self.poll_close_impl(cx)
+    }
 }
 
 #[cfg(feature = "tokio")]
@@ -431,7 +436,7 @@ fn update_state(current_state: &mut State, next_state: State) {
     *current_state = next_state;
 }
 
-#[cfg(any(feature = "async-std", feature = "tokio"))]
+#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
 impl AsyncWriter {
     #[inline]
     fn poll_close_impl(
@@ -522,12 +527,16 @@ fn make_mmap(_: &mut NamedTempFile, _: Option<usize>) -> Result<Option<MmapMut>>
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[cfg(any(feature = "async-std", feature = "tokio"))]
+    #[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
     use crate::async_lib::AsyncWriteExt;
     use tempfile;
 
     #[cfg(feature = "async-std")]
     use async_attributes::test as async_test;
+    #[cfg(feature = "smol")]
+    use macro_rules_attribute::apply;
+    #[cfg(feature = "smol")]
+    use smol_macros::test;
     #[cfg(feature = "tokio")]
     use tokio::test as async_test;
 
@@ -547,6 +556,23 @@ mod tests {
 
     #[cfg(any(feature = "async-std", feature = "tokio"))]
     #[async_test]
+    async fn basic_async_write() {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().to_owned();
+        let mut writer = AsyncWriter::new(&dir, Algorithm::Sha256, None)
+            .await
+            .unwrap();
+        writer.write_all(b"hello world").await.unwrap();
+        let sri = writer.close().await.unwrap();
+        assert_eq!(sri.to_string(), Integrity::from(b"hello world").to_string());
+        assert_eq!(
+            std::fs::read(path::content_path(&dir, &sri)).unwrap(),
+            b"hello world"
+        );
+    }
+
+    #[cfg(feature = "smol")]
+    #[apply(test!)]
     async fn basic_async_write() {
         let tmp = tempfile::tempdir().unwrap();
         let dir = tmp.path().to_owned();
