@@ -187,7 +187,7 @@ impl AsyncWriter {
                 })))))
             }
             _ => Err(Error::IoError(
-                std::io::Error::new(std::io::ErrorKind::Other, "temp file create error"),
+                std::io::Error::other("temp file create error"),
                 "Possible memory issues for file handle".into(),
             )),
         }
@@ -496,20 +496,18 @@ fn make_mmap(tmpfile: &mut NamedTempFile, size: Option<usize>) -> Result<Option<
 #[cfg(feature = "mmap")]
 #[cfg(target_os = "linux")]
 fn allocate_file(file: &std::fs::File, size: usize) -> std::io::Result<()> {
-    use std::io::{Error, ErrorKind};
+    use std::io::Error;
     use std::os::fd::AsRawFd;
 
     let fd = file.as_raw_fd();
     match unsafe { libc::posix_fallocate64(fd, 0, size as i64) } {
         0 => Ok(()),
-        libc::ENOSPC => Err(Error::new(
-            ErrorKind::Other, // ErrorKind::StorageFull is unstable
+        libc::ENOSPC => Err(Error::other(
             "cannot allocate file: no space left on device",
         )),
-        err => Err(Error::new(
-            ErrorKind::Other,
-            format!("posix_fallocate64 failed with code {err}"),
-        )),
+        err => Err(Error::other(format!(
+            "posix_fallocate64 failed with code {err}"
+        ))),
     }
 }
 
