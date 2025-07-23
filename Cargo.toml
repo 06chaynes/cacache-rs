@@ -11,7 +11,6 @@ readme = "README.md"
 categories = ["caching", "filesystem"]
 
 [dependencies]
-async-std = { version = "1.10.0", features = ["unstable"], optional = true }
 digest = "0.10.6"
 either = "1.6.1"
 futures = { version = "0.3.17", optional = true }
@@ -41,7 +40,6 @@ walkdir = "2.3.2"
 libc = { version = "0.2.144", optional = true }
 
 [dev-dependencies]
-async-attributes = { version = "1.1.2" }
 criterion = "0.4.0"
 lazy_static = "1.4.0"
 smol-macros = "0.1.1"
@@ -59,9 +57,8 @@ name = "benchmarks"
 harness = false
 
 [features]
-default = ["async-std", "mmap"]
+default = ["smol-runtime", "mmap"]
 mmap = ["memmap2", "libc"]
-async-std = ["dep:async-std", "futures"]
 link_to = []
 tokio-runtime = ["tokio", "tokio-stream", "futures"]
 smol-runtime = ["smol", "futures"]

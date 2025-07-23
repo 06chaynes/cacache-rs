@@ -1,13 +1,13 @@
 //! Functions for reading from cache.
 use std::path::Path;
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 use std::pin::Pin;
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 use std::task::{Context as TaskContext, Poll};
 
 use ssri::{Algorithm, Integrity};
 
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 use crate::async_lib::AsyncRead;
 use crate::content::read;
 use crate::errors::{Error, Result};
@@ -21,28 +21,19 @@ use crate::index::{self, Metadata};
 ///
 /// Make sure to call `.check()` when done reading to verify that the
 /// extracted data passes integrity verification.
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 pub struct Reader {
     reader: read::AsyncReader,
 }
 
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 impl AsyncRead for Reader {
-    #[cfg(feature = "async-std")]
-    fn poll_read(
-        mut self: Pin<&mut Self>,
-        cx: &mut TaskContext<'_>,
-        buf: &mut [u8],
-    ) -> Poll<std::io::Result<usize>> {
-        Pin::new(&mut self.reader).poll_read(cx, buf)
-    }
-
     #[cfg(feature = "tokio")]
     fn poll_read(
         mut self: Pin<&mut Self>,
         cx: &mut TaskContext<'_>,
         buf: &mut tokio::io::ReadBuf<'_>,
-    ) -> Poll<tokio::io::Result<()>> {
+    ) -> Poll<std::io::Result<()>> {
         Pin::new(&mut self.reader).poll_read(cx, buf)
     }
 
@@ -56,7 +47,7 @@ impl AsyncRead for Reader {
     }
 }
 
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 impl Reader {
     /// Checks that data read from disk passes integrity checks. Returns the
     /// algorithm that was used verified the data. Should be called only after
@@ -68,10 +59,11 @@ impl Reader {
     ///
     /// ## Example
     /// ```no_run
-    /// use async_std::prelude::*;
-    /// use async_attributes;
+    /// use macro_rules_attribute::apply;
+    /// use smol_macros::main;
+    /// use futures::io::AsyncReadExt;
     ///
-    /// #[async_attributes::main]
+    /// #[apply(main!)]
     /// async fn main() -> cacache::Result<()> {
     ///     let mut fd = cacache::Reader::open("./my-cache", "my-key").await?;
     ///     let mut str = String::new();
@@ -90,10 +82,11 @@ impl Reader {
     ///
     /// ## Example
     /// ```no_run
-    /// use async_std::prelude::*;
-    /// use async_attributes;
+    /// use macro_rules_attribute::apply;
+    /// use smol_macros::main;
+    /// use futures::io::AsyncReadExt;
     ///
-    /// #[async_attributes::main]
+    /// #[apply(main!)]
     /// async fn main() -> cacache::Result<()> {
     ///     let mut fd = cacache::Reader::open("./my-cache", "my-key").await?;
     ///     let mut str = String::new();
@@ -122,10 +115,11 @@ impl Reader {
     ///
     /// ## Example
     /// ```no_run
-    /// use async_std::prelude::*;
-    /// use async_attributes;
+    /// use macro_rules_attribute::apply;
+    /// use smol_macros::main;
+    /// use futures::io::AsyncReadExt;
     ///
-    /// #[async_attributes::main]
+    /// #[apply(main!)]
     /// async fn main() -> cacache::Result<()> {
     ///     let sri = cacache::write("./my-cache", "key", b"hello world").await?;
     ///     let mut fd = cacache::Reader::open_hash("./my-cache", sri).await?;
@@ -151,16 +145,16 @@ impl Reader {
 ///
 /// ## Example
 /// ```no_run
-/// use async_std::prelude::*;
-/// use async_attributes;
+/// use macro_rules_attribute::apply;
+/// use smol_macros::main;
 ///
-/// #[async_attributes::main]
+/// #[apply(main!)]
 /// async fn main() -> cacache::Result<()> {
 ///     let data: Vec<u8> = cacache::read("./my-cache", "my-key").await?;
 ///     Ok(())
 /// }
 /// ```
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 pub async fn read<P, K>(cache: P, key: K) -> Result<Vec<u8>>
 where
     P: AsRef<Path>,
@@ -181,17 +175,17 @@ where
 ///
 /// ## Example
 /// ```no_run
-/// use async_std::prelude::*;
-/// use async_attributes;
+/// use macro_rules_attribute::apply;
+/// use smol_macros::main;
 ///
-/// #[async_attributes::main]
+/// #[apply(main!)]
 /// async fn main() -> cacache::Result<()> {
 ///     let sri = cacache::write("./my-cache", "my-key", b"hello").await?;
 ///     let data: Vec<u8> = cacache::read_hash("./my-cache", &sri).await?;
 ///     Ok(())
 /// }
 /// ```
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 pub async fn read_hash<P>(cache: P, sri: &Integrity) -> Result<Vec<u8>>
 where
     P: AsRef<Path>,
@@ -204,16 +198,16 @@ where
 ///
 /// ## Example
 /// ```no_run
-/// use async_std::prelude::*;
-/// use async_attributes;
+/// use macro_rules_attribute::apply;
+/// use smol_macros::main;
 ///
-/// #[async_attributes::main]
+/// #[apply(main!)]
 /// async fn main() -> cacache::Result<()> {
 ///     cacache::copy("./my-cache", "my-key", "./data.txt").await?;
 ///     Ok(())
 /// }
 /// ```
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 pub async fn copy<P, K, Q>(cache: P, key: K, to: Q) -> Result<u64>
 where
     P: AsRef<Path>,
@@ -235,16 +229,16 @@ where
 ///
 /// ## Example
 /// ```no_run
-/// use async_std::prelude::*;
-/// use async_attributes;
+/// use macro_rules_attribute::apply;
+/// use smol_macros::main;
 ///
-/// #[async_attributes::main]
+/// #[apply(main!)]
 /// async fn main() -> cacache::Result<()> {
 ///     cacache::copy_unchecked("./my-cache", "my-key", "./data.txt").await?;
 ///     Ok(())
 /// }
 /// ```
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 pub async fn copy_unchecked<P, K, Q>(cache: P, key: K, to: Q) -> Result<u64>
 where
     P: AsRef<Path>,
@@ -266,17 +260,17 @@ where
 ///
 /// ## Example
 /// ```no_run
-/// use async_std::prelude::*;
-/// use async_attributes;
+/// use macro_rules_attribute::apply;
+/// use smol_macros::main;
 ///
-/// #[async_attributes::main]
+/// #[apply(main!)]
 /// async fn main() -> cacache::Result<()> {
 ///     let sri = cacache::write("./my-cache", "my-key", b"hello world").await?;
 ///     cacache::copy_hash("./my-cache", &sri, "./data.txt").await?;
 ///     Ok(())
 /// }
 /// ```
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 pub async fn copy_hash<P, Q>(cache: P, sri: &Integrity, to: Q) -> Result<u64>
 where
     P: AsRef<Path>,
@@ -290,17 +284,17 @@ where
 ///
 /// ## Example
 /// ```no_run
-/// use async_std::prelude::*;
-/// use async_attributes;
+/// use macro_rules_attribute::apply;
+/// use smol_macros::main;
 ///
-/// #[async_attributes::main]
+/// #[apply(main!)]
 /// async fn main() -> cacache::Result<()> {
 ///     let sri = cacache::write("./my-cache", "my-key", b"hello world").await?;
 ///     cacache::copy_hash_unchecked("./my-cache", &sri, "./data.txt").await?;
 ///     Ok(())
 /// }
 /// ```
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 pub async fn copy_hash_unchecked<P, Q>(cache: P, sri: &Integrity, to: Q) -> Result<u64>
 where
     P: AsRef<Path>,
@@ -319,16 +313,16 @@ where
 ///
 /// ## Example
 /// ```no_run
-/// use async_std::prelude::*;
-/// use async_attributes;
+/// use macro_rules_attribute::apply;
+/// use smol_macros::main;
 ///
-/// #[async_attributes::main]
+/// #[apply(main!)]
 /// async fn main() -> cacache::Result<()> {
 ///     cacache::reflink("./my-cache", "my-key", "./data.txt").await?;
 ///     Ok(())
 /// }
 /// ```
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 pub async fn reflink<P, K, Q>(cache: P, key: K, to: Q) -> Result<()>
 where
     P: AsRef<Path>,
@@ -356,16 +350,16 @@ where
 ///
 /// ## Example
 /// ```no_run
-/// use async_std::prelude::*;
-/// use async_attributes;
+/// use macro_rules_attribute::apply;
+/// use smol_macros::main;
 ///
-/// #[async_attributes::main]
+/// #[apply(main!)]
 /// async fn main() -> cacache::Result<()> {
 ///     cacache::reflink_unchecked("./my-cache", "my-key", "./data.txt").await?;
 ///     Ok(())
 /// }
 /// ```
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 pub async fn reflink_unchecked<P, K, Q>(cache: P, key: K, to: Q) -> Result<()>
 where
     P: AsRef<Path>,
@@ -392,17 +386,17 @@ where
 ///
 /// ## Example
 /// ```no_run
-/// use async_std::prelude::*;
-/// use async_attributes;
+/// use macro_rules_attribute::apply;
+/// use smol_macros::main;
 ///
-/// #[async_attributes::main]
+/// #[apply(main!)]
 /// async fn main() -> cacache::Result<()> {
 ///     let sri = cacache::write("./my-cache", "my-key", b"hello world").await?;
 ///     cacache::reflink_hash("./my-cache", &sri, "./data.txt").await?;
 ///     Ok(())
 /// }
 /// ```
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 pub async fn reflink_hash<P, Q>(cache: P, sri: &Integrity, to: Q) -> Result<()>
 where
     P: AsRef<Path>,
@@ -412,7 +406,7 @@ where
 }
 
 /// Hard links a cache entry by hash to a specified location.
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 pub async fn hard_link_hash<P, Q>(cache: P, sri: &Integrity, to: Q) -> Result<()>
 where
     P: AsRef<Path>,
@@ -422,7 +416,7 @@ where
 }
 
 /// Hard links a cache entry by key to a specified location.
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 pub async fn hard_link<P, K, Q>(cache: P, key: K, to: Q) -> Result<()>
 where
     P: AsRef<Path>,
@@ -444,7 +438,7 @@ where
 /// Note that the existence of a metadata entry is not a guarantee that the
 /// underlying data exists, since they are stored and managed independently.
 /// To verify that the underlying associated data exists, use `exists()`.
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 pub async fn metadata<P, K>(cache: P, key: K) -> Result<Option<Metadata>>
 where
     P: AsRef<Path>,
@@ -454,7 +448,7 @@ where
 }
 
 /// Returns true if the given hash exists in the cache.
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 pub async fn exists<P: AsRef<Path>>(cache: P, sri: &Integrity) -> bool {
     read::has_content_async(cache.as_ref(), sri).await.is_some()
 }
@@ -724,11 +718,7 @@ where
 ///
 /// ## Example
 /// ```no_run
-/// use async_std::prelude::*;
-/// use async_attributes;
-///
-/// #[async_attributes::main]
-/// async fn main() -> cacache::Result<()> {
+/// fn main() -> cacache::Result<()> {
 ///     cacache::reflink_sync("./my-cache", "my-key", "./data.txt")?;
 ///     Ok(())
 /// }
@@ -759,11 +749,7 @@ where
 ///
 /// ## Example
 /// ```no_run
-/// use async_std::prelude::*;
-/// use async_attributes;
-///
-/// #[async_attributes::main]
-/// async fn main() -> cacache::Result<()> {
+/// fn main() -> cacache::Result<()> {
 ///     let sri = cacache::write_sync("./my-cache", "my-key", b"hello world")?;
 ///     cacache::reflink_hash_sync("./my-cache", &sri, "./data.txt")?;
 ///     Ok(())
@@ -788,11 +774,7 @@ where
 ///
 /// ## Example
 /// ```no_run
-/// use async_std::prelude::*;
-/// use async_attributes;
-///
-/// #[async_attributes::main]
-/// async fn main() -> cacache::Result<()> {
+/// fn main() -> cacache::Result<()> {
 ///     let sri = cacache::write_sync("./my-cache", "my-key", b"hello world")?;
 ///     cacache::reflink_hash_unchecked_sync("./my-cache", &sri, "./data.txt")?;
 ///     Ok(())
@@ -817,11 +799,7 @@ where
 ///
 /// ## Example
 /// ```no_run
-/// use async_std::prelude::*;
-/// use async_attributes;
-///
-/// #[async_attributes::main]
-/// async fn main() -> cacache::Result<()> {
+/// fn main() -> cacache::Result<()> {
 ///     cacache::reflink_unchecked_sync("./my-cache", "my-key", "./data.txt")?;
 ///     Ok(())
 /// }
@@ -921,12 +899,10 @@ pub fn exists_sync<P: AsRef<Path>>(cache: P, sri: &Integrity) -> bool {
 
 #[cfg(test)]
 mod tests {
-    #[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+    #[cfg(any(feature = "tokio", feature = "smol"))]
     use crate::async_lib::AsyncReadExt;
     use std::fs;
 
-    #[cfg(feature = "async-std")]
-    use async_attributes::test as async_test;
     #[cfg(feature = "smol")]
     use macro_rules_attribute::apply;
     #[cfg(feature = "smol")]
@@ -934,7 +910,7 @@ mod tests {
     #[cfg(feature = "tokio")]
     use tokio::test as async_test;
 
-    #[cfg(any(feature = "async-std", feature = "tokio"))]
+    #[cfg(feature = "tokio")]
     #[async_test]
     async fn test_open() {
         let tmp = tempfile::tempdir().unwrap();
@@ -962,7 +938,7 @@ mod tests {
         assert_eq!(str, String::from("hello world"));
     }
 
-    #[cfg(any(feature = "async-std", feature = "tokio"))]
+    #[cfg(feature = "tokio")]
     #[async_test]
     async fn test_open_hash() {
         let tmp = tempfile::tempdir().unwrap();
@@ -1018,7 +994,7 @@ mod tests {
         assert_eq!(str, String::from("hello world"));
     }
 
-    #[cfg(any(feature = "async-std", feature = "tokio"))]
+    #[cfg(feature = "tokio")]
     #[async_test]
     async fn test_read() {
         let tmp = tempfile::tempdir().unwrap();
@@ -1040,7 +1016,7 @@ mod tests {
         assert_eq!(data, b"hello world");
     }
 
-    #[cfg(any(feature = "async-std", feature = "tokio"))]
+    #[cfg(feature = "tokio")]
     #[async_test]
     async fn test_read_hash() {
         let tmp = tempfile::tempdir().unwrap();
@@ -1082,7 +1058,7 @@ mod tests {
         assert_eq!(data, b"hello world");
     }
 
-    #[cfg(any(feature = "async-std", feature = "tokio"))]
+    #[cfg(feature = "tokio")]
     #[async_test]
     async fn test_copy() {
         let tmp = tempfile::tempdir().unwrap();
@@ -1108,7 +1084,7 @@ mod tests {
         assert_eq!(data, b"hello world");
     }
 
-    #[cfg(any(feature = "async-std", feature = "tokio"))]
+    #[cfg(feature = "tokio")]
     #[async_test]
     async fn test_copy_hash() {
         let tmp = tempfile::tempdir().unwrap();

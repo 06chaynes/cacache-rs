@@ -2,13 +2,11 @@ use ssri::{Algorithm, Integrity, IntegrityOpts};
 use std::fs::DirBuilder;
 use std::fs::File;
 use std::path::{Path, PathBuf};
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 use std::pin::Pin;
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 use std::task::{Context, Poll};
 
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
-use crate::async_lib::AsyncRead;
 use crate::content::path;
 use crate::errors::{IoErrorExt, Result};
 
@@ -106,7 +104,7 @@ impl std::io::Read for ToLinker {
 /// An `AsyncRead`-like type that calculates the integrity of a file as it is
 /// read. When the linker is committed, a symlink is created from the cache to
 /// the target file using the integrity computed from the file's contents.
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 pub struct AsyncToLinker {
     /// The path to the target file that will be symlinked from the cache.
     target: PathBuf,
@@ -118,22 +116,8 @@ pub struct AsyncToLinker {
     builder: IntegrityOpts,
 }
 
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
-impl AsyncRead for AsyncToLinker {
-    #[cfg(feature = "async-std")]
-    fn poll_read(
-        mut self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
-        buf: &mut [u8],
-    ) -> Poll<std::io::Result<usize>> {
-        let amt = futures::ready!(Pin::new(&mut self.fd).poll_read(cx, buf))?;
-        if amt > 0 {
-            self.builder.input(&buf[..amt]);
-        }
-        Poll::Ready(Ok(amt))
-    }
-
-    #[cfg(feature = "tokio")]
+#[cfg(feature = "tokio")]
+impl tokio::io::AsyncRead for AsyncToLinker {
     fn poll_read(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
@@ -146,8 +130,10 @@ impl AsyncRead for AsyncToLinker {
         }
         Poll::Ready(Ok(()))
     }
+}
 
-    #[cfg(feature = "smol")]
+#[cfg(feature = "smol")]
+impl futures::io::AsyncRead for AsyncToLinker {
     fn poll_read(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
@@ -161,7 +147,7 @@ impl AsyncRead for AsyncToLinker {
     }
 }
 
-#[cfg(any(feature = "async-std", feature = "tokio", feature = "smol"))]
+#[cfg(any(feature = "tokio", feature = "smol"))]
 impl AsyncToLinker {
     pub async fn new(cache: &Path, algo: Algorithm, target: &Path) -> Result<Self> {
         let file = crate::async_lib::File::open(target)
@@ -187,8 +173,6 @@ mod tests {
 
     use super::*;
 
-    #[cfg(feature = "async-std")]
-    use async_attributes::test as async_test;
     #[cfg(feature = "smol")]
     use macro_rules_attribute::apply;
     #[cfg(feature = "smol")]
@@ -196,8 +180,6 @@ mod tests {
     #[cfg(feature = "tokio")]
     use tokio::test as async_test;
 
-    #[cfg(feature = "async-std")]
-    use futures::io::AsyncReadExt;
     #[cfg(feature = "smol")]
     use futures::io::AsyncReadExt;
     #[cfg(feature = "tokio")]
@@ -241,7 +223,7 @@ mod tests {
         assert_eq!(std::fs::read(cpath).unwrap(), b"hello world");
     }
 
-    #[cfg(any(feature = "async-std", feature = "tokio"))]
+    #[cfg(feature = "tokio")]
     #[async_test]
     async fn basic_async_link() {
         let tmp = tempfile::tempdir().unwrap();
